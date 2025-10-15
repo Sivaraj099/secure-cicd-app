@@ -12,7 +12,7 @@ permissions:
   id-token: write
 
 env:
-  IMAGE_NAME: ${{ github.repository_owner }}/secure-cicd-app
+  IMAGE_NAME: ${{ github.repository_owner | toLowerCase }}/secure-cicd-app
 
 jobs:
   build-scan-sign:
