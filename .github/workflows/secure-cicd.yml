@@ -11,16 +11,19 @@ permissions:
   security-events: write
   id-token: write
 
-env:
-  IMAGE_NAME: ${{ github.repository_owner | toLowerCase }}/secure-cicd-app
-
 jobs:
   build-scan-sign:
     runs-on: ubuntu-latest
+    env:
+      IMAGE_NAME: secure-cicd-app
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Set lowercase owner name
+        id: owner
+        run: echo "owner_lc=${GITHUB_REPOSITORY_OWNER,,}" >> $GITHUB_ENV
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -41,15 +44,15 @@ jobs:
           context: .
           push: true
           tags: |
-            ghcr.io/${{ env.IMAGE_NAME }}:${{ github.sha }}
-            ghcr.io/${{ env.IMAGE_NAME }}:latest
+            ghcr.io/${{ env.owner_lc }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+            ghcr.io/${{ env.owner_lc }}/${{ env.IMAGE_NAME }}:latest
           provenance: true
           sbom: true
 
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@0.26.0
         with:
-          image-ref: ghcr.io/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          image-ref: ghcr.io/${{ env.owner_lc }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
           format: sarif
           output: trivy-results.sarif
           severity: CRITICAL,HIGH,MEDIUM
@@ -68,11 +71,11 @@ jobs:
         env:
           COSIGN_EXPERIMENTAL: "true"
         run: |
-          cosign sign --yes ghcr.io/${{ env.IMAGE_NAME }}:${{ github.sha }}
-          cosign sign --yes ghcr.io/${{ env.IMAGE_NAME }}:latest
+          cosign sign --yes ghcr.io/${{ env.owner_lc }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          cosign sign --yes ghcr.io/${{ env.owner_lc }}/${{ env.IMAGE_NAME }}:latest
 
       - name: Print image digest (optional)
         run: |
           echo "Built and signed image tags:"
-          echo "ghcr.io/${{ env.IMAGE_NAME }}:${{ github.sha }}"
-          echo "ghcr.io/${{ env.IMAGE_NAME }}:latest"
+          echo "ghcr.io/${{ env.owner_lc }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"
+          echo "ghcr.io/${{ env.owner_lc }}/${{ env.IMAGE_NAME }}:latest"
